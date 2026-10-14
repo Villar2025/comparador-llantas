@@ -1,0 +1,15 @@
+Bibliotecas de terceros incluidas sin modificación de su código:
+
+Supabase JavaScript 2.49.8 — MIT — https://github.com/supabase/supabase-js
+SheetJS CE 0.20.3 — Apache 2.0 — https://sheetjs.com/
+PDF.js 4.10.38 — Apache 2.0 — https://github.com/mozilla/pdf.js
+Tesseract.js 5.1.1 y Tesseract.js-core 5.1.1 — Apache 2.0
+https://github.com/naptha/tesseract.js
+https://github.com/naptha/tesseract.js-core
+Datos de idioma eng (@tesseract.js-data/eng 1.0.0):
+https://github.com/naptha/tessdata — Apache 2.0
+
+El texto completo de Apache 2.0 está incluido en LICENSE-sheetjs.txt.
+Los archivos descargados corresponden a los distribuidores oficiales
+SheetJS y npm/jsDelivr. El módulo principal importa estas copias locales.
+El motor OCR utiliza el núcleo LSTM sin SIMD para compatibilidad.
