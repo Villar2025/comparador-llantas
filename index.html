@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1"
+    />
+    <meta
+      name="theme-color"
+      content="#203d34"
+    />
+    <title>Comparador de llantas</title>
+    <link
+      rel="stylesheet"
+      href="css/styles.css"
+    />
+  </head>
+  <body>
+    <section
+      id="login"
+      class="login"
+    >
+      <div class="login-story">
+        <a
+          class="brand"
+          href="./"
+          ><span class="mark">C</span> Comparador de llantas</a
+        >
+        <div>
+          <p class="eyebrow">TU MESA DE COMPRAS</p>
+          <h1>Compara precios.<br>Elige la mejor opción.</h1>
+          <p>Consulta precios y existencias de tus proveedores en un solo lugar.</p>
+        </div>
+        <small>Una herramienta para tu negocio.</small>
+      </div>
+      <div class="login-form">
+        <form id="login-form">
+          <p class="eyebrow">ACCESO PRIVADO</p>
+          <h2>Bienvenido.</h2>
+          <p class="muted">Entra con tu correo y contraseña.</p>
+          <label
+            >Correo electrónico<input
+              id="email"
+              type="email"
+              required
+              autocomplete="username" /></label
+          ><label
+            >Contraseña<span class="password"
+              ><input
+                id="password"
+                type="password"
+                required
+                autocomplete="current-password"
+              /><button
+                id="show-password"
+                type="button"
+                class="text-button"
+                aria-pressed="false"
+              >
+                Mostrar
+              </button></span
+            ></label
+          ><button
+            class="primary"
+            id="login-button"
+            disabled
+          >
+            Preparando acceso…
+          </button>
+          <p
+            id="login-status"
+            role="status"
+            class="status"
+          ></p>
+          <small class="muted"
+            >Tu sesión se conserva en este navegador. Ciérrala si compartes el
+            equipo.</small
+          >
+        </form>
+      </div>
+    </section>
+    <div
+      id="app"
+      hidden
+    >
+      <aside class="sidebar">
+        <a
+          class="brand"
+          href="./"
+          ><span class="mark">C</span
+          ><span>Comparador<br /><small>DE LLANTAS</small></span></a
+        >
+        <p class="nav-label">MESA DE COMPRAS</p>
+        <nav aria-label="Principal">
+          <button
+            data-page="compare"
+            class="nav active"
+          >
+            Comparar <span>↗</span></button
+          ><button
+            data-page="lists"
+            class="nav"
+          >
+            Listas de precios <span>05</span></button
+          ><button
+            data-page="cart"
+            class="nav"
+          >
+            Mi pedido <span id="cart-count">0</span>
+          </button>
+        </nav>
+        <div class="sidebar-foot">
+          <span class="dot"></span> Acceso privado<button
+            id="logout"
+            class="logout"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+      <main class="workspace">
+        <header class="topbar">
+          <span id="breadcrumb">Compras / Comparador</span
+          ><button
+            id="refresh"
+            class="secondary"
+          >
+            Actualizar datos
+          </button>
+        </header>
+        <p
+          id="global-status"
+          class="status"
+          role="status"
+          aria-live="polite"
+        ></p>
+        <section id="page-compare">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">ELIGE CON INFORMACIÓN</p>
+              <h1>
+                Tu próxima compra,<br class="mobile-only" />
+                bien comparada.
+              </h1>
+              <p class="muted">
+                Busca una medida y encuentra las opciones de tus proveedores.
+              </p>
+            </div>
+            <span
+              id="catalog-count"
+              class="pill"
+              >Cargando catálogo</span
+            >
+          </div>
+          <form
+            id="search-form"
+            class="search-panel"
+          >
+            <div class="search-main">
+              <label class="grow"
+                >Medida, modelo o código<input
+                  id="query"
+                  type="search"
+                  placeholder="Ej. 205/55R16"
+                  value="205/55R16"
+                  autocomplete="off" /></label
+              ><label class="quantity"
+                >Piezas<input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  max="9999"
+                  value="4"
+                  required /></label
+              ><button
+                class="primary"
+                type="submit"
+              >
+                Comparar <span>↗</span>
+              </button>
+            </div>
+            <div class="filters">
+              <label
+                >Proveedor<select id="provider-filter">
+                  <option value="">Todos los proveedores</option>
+                </select></label
+              ><label
+                >Marca<select id="brand-filter">
+                  <option value="">Todas las marcas</option>
+                </select></label
+              ><label
+                >Disponibilidad<select id="stock-filter">
+                  <option value="all">Todas las opciones</option>
+                  <option value="enough">Cubren mi cantidad</option>
+                  <option value="positive">Con existencias</option>
+                </select></label
+              ><label
+                >Comparación<select id="mode">
+                  <option value="size">Distintas marcas / misma medida</option>
+                  <option value="exact">Misma llanta y especificaciones</option>
+                </select></label
+              >
+            </div>
+            <label
+              id="exact-label"
+              hidden
+              >Llanta exacta (solo descripciones con datos suficientes)<select
+                id="exact-filter"
+              ></select></label
+            ><label class="check"
+              ><input
+                id="wholesale"
+                type="checkbox"
+              />
+              Ver escenario de mayoreo Yactyres (mínimo 50 piezas por pedido;
+              confirmar condición)</label
+            >
+          </form>
+          <p class="source-note">
+            Precios publicados en MXN. Las listas tienen fechas y condiciones
+            distintas; IVA y flete no se agregan si no están indicados. La
+            existencia es la reportada en el archivo.
+          </p>
+          <div class="comparison-grid">
+            <div>
+              <div class="section-head">
+                <h2>Opciones disponibles</h2>
+                <span
+                  id="result-count"
+                  class="muted"
+                ></span>
+              </div>
+              <div id="results"></div>
+              <button
+                id="more"
+                class="secondary more"
+                hidden
+              >
+                Mostrar más
+              </button>
+            </div>
+            <aside class="chart-panel">
+              <p class="eyebrow">DE MENOR A MAYOR</p>
+              <h2>Precios a la vista</h2>
+              <p
+                id="chart-caption"
+                class="muted"
+              ></p>
+              <div
+                id="chart"
+                role="img"
+                aria-label="Comparación de precios"
+              ></div>
+              <p class="chart-note">
+                Hasta 8 opciones de la búsqueda. Precio por pieza, según la
+                tarifa seleccionada.
+              </p>
+            </aside>
+          </div>
+        </section>
+        <section
+          id="page-lists"
+          hidden
+        >
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">TUS FUENTES</p>
+              <h1>Listas de precios.</h1>
+              <p class="muted">
+                Los cinco archivos iniciales ya vienen preparados. Aquí
+                actualizas las siguientes listas.
+              </p>
+            </div>
+          </div>
+          <div
+            id="list-cards"
+            class="list-cards"
+          ></div>
+          <section class="panel import-panel">
+            <h2>Actualizar una lista</h2>
+            <p class="muted">
+              Revisa los datos antes de publicar. La versión anterior queda en
+              el historial.
+            </p>
+            <form id="import-form">
+              <div class="filters">
+                <label>Proveedor<select id="import-provider"></select></label
+                ><label
+                  >Fecha de la lista (si se conoce)<input
+                    id="import-date"
+                    type="date" /></label
+                ><label
+                  >Archivo<input
+                    id="import-file"
+                    type="file"
+                    accept=".xlsx,.xls,.pdf,.csv"
+                    required
+                /></label>
+              </div>
+              <button
+                id="read-file"
+                class="primary"
+              >
+                Leer archivo</button
+              ><button
+                id="template"
+                type="button"
+                class="secondary"
+              >
+                Descargar formato CSV
+              </button>
+            </form>
+            <p
+              id="import-status"
+              class="status"
+              role="status"
+            ></p>
+            <div
+              id="import-review"
+              hidden
+            >
+              <h3>Revisión antes de guardar</h3>
+              <p id="import-summary"></p>
+              <p class="muted">
+                Puedes corregir descripción, marca, modelo, existencia y precios
+                en la tabla. Vacío en precio o existencia significa “por
+                confirmar”.
+              </p>
+              <div class="review-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Descripción</th>
+                      <th>Marca</th>
+                      <th>Modelo</th>
+                      <th>Existencia</th>
+                      <th>Precio MXN</th>
+                      <th>Mayoreo Yactyres</th>
+                    </tr>
+                  </thead>
+                  <tbody id="review-rows"></tbody>
+                </table>
+              </div>
+              <label class="check"
+                ><input
+                  id="review-confirm"
+                  type="checkbox"
+                />
+                Revisé precios, existencias y condiciones; publicar esta
+                versión.</label
+              ><button
+                id="publish"
+                class="primary"
+                disabled
+              >
+                Guardar y actualizar comparador
+              </button>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>Historial de cargas</h2>
+            <div id="history"></div>
+          </section>
+        </section>
+        <section
+          id="page-cart"
+          hidden
+        >
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">LISTO PARA REVISAR</p>
+              <h1>Mi pedido.</h1>
+              <p class="muted">
+                Organizado por proveedor. Preparar un pedido no reserva ni envía
+                mercancía.
+              </p>
+            </div>
+            <button
+              id="clear-cart"
+              class="secondary"
+            >
+              Vaciar borrador
+            </button>
+          </div>
+          <div id="cart"></div>
+          <div class="cart-actions">
+            <button
+              id="save-order"
+              class="primary"
+            >
+              Guardar pedido</button
+            ><button
+              id="export-order"
+              class="secondary"
+            >
+              Descargar CSV</button
+            ><button
+              id="print-order"
+              class="secondary"
+            >
+              Imprimir / PDF
+            </button>
+          </div>
+          <p
+            id="cart-status"
+            class="status"
+            role="status"
+          ></p>
+          <section class="panel">
+            <h2>Pedidos guardados</h2>
+            <div id="saved-orders"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <dialog id="detail">
+      <div class="dialog-heading">
+        <h2>Detalle de la oferta</h2>
+        <button
+          id="close-detail"
+          class="secondary"
+        >
+          Cerrar
+        </button>
+      </div>
+      <div id="detail-body"></div>
+    </dialog>
+    <noscript>Activa JavaScript para utilizar esta plataforma.</noscript>
+    <script type="module">
+      const timer = setTimeout(() => {
+        const s = document.querySelector("#login-status");
+        if (!document.querySelector("#login").hidden)
+          s.textContent =
+            "La conexión está tardando. Revisa Internet y recarga. Si persiste, verifica que abriste index.html con Live Server.";
+      }, 15000);
+      import("./js/app.js")
+        .then((m) => m.start())
+        .then(() => clearTimeout(timer))
+        .catch((e) => {
+          clearTimeout(timer);
+          document.querySelector("#login-status").textContent =
+            "No se pudo iniciar: " + e.message;
+          console.error(e);
+        });
+    </script>
+  </body>
+</html>
