@@ -1,7 +1,7 @@
-export const SUPABASE_URL = 'https://kxnhhttaqrsivgzlonec.supabase.co';
+export const SUPABASE_URL = 'https://sxqssttvcqecfrdhfhfn.supabase.co';
 
 export const SUPABASE_KEY =
-  'sb_publishable_ruJ2KcdpDnBUbeDUL7FWSg_qnt2zD5C';
+  'sb_publishable_GHD_1SAbfgt372JL7BHPkQ_JFRjy8P1';
 
 export async function connect() {
   if (!globalThis.supabase) {
