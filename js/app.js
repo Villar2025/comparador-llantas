@@ -216,9 +216,9 @@ async function load() {
         uid: l.id + ":" + r.id,
         provider_id: l.provider_id,
         list_id: l.id,
-        filename: l.filename,
-        date: l.date,
-        date_label: l.date_label,
+        filename: r.sourceFilename || l.filename,
+        date: Object.hasOwn(r, "sourceDate") ? r.sourceDate : l.date,
+        date_label: r.sourceDateLabel || l.date_label,
       })),
     );
     if (saved.error) throw saved.error;
@@ -504,6 +504,44 @@ function printOrder() {
   );
   w.document.close();
 }
+function futuramaGroup(row) {
+  if (row.futuramaGroup) return row.futuramaGroup;
+  if (row.sourceFormat === "futurama-inventario" ||
+      norm(row.priceLabel).startsWith("SEMI-MAYOREO")) return "inventario";
+  if (norm(row.brand) === "TOYO" && norm(row.priceLabel) === "PRECIO NETO MXN") return "toyo";
+  throw Error(`No se reconoce la lista de origen de ${row.code}. No se publicará hasta revisarlo.`);
+}
+function prepareFuturamaImport(incoming, active) {
+  const groups = new Set(incoming.rows.map(futuramaGroup));
+  if (groups.size !== 1) throw Error("Carga por separado el inventario o la lista TOYO.");
+  const group = [...groups][0];
+  const retained = (active?.rows || []).filter(r => futuramaGroup(r) !== group);
+  const count = incoming.rows.length;
+  const imported = incoming.rows.map(r => ({...r, futuramaGroup: group}));
+  const kept = retained.map(r => ({
+    ...structuredClone(r),
+    futuramaGroup: futuramaGroup(r),
+    sourceFilename: r.sourceFilename || active.filename,
+    sourceDate: r.sourceDate ?? null,
+    sourceDateLabel: r.sourceDateLabel || "Lista conservada; fecha original en detalle",
+  }));
+  const codes = new Set(imported.map(r => norm(r.code)));
+  if (kept.some(r => codes.has(norm(r.code))))
+    throw Error("Hay códigos compartidos entre inventario y TOYO. Revisa antes de unir las listas.");
+  if (count + kept.length > 5000) throw Error("La lista combinada supera el límite de 5,000 productos.");
+  return {
+    ...incoming,
+    rows: [...imported, ...kept],
+    futuramaImportCount: count,
+    futuramaImportedFilename: incoming.filename,
+    filename: kept.length ? "Futurama · inventario + lista TOYO" : incoming.filename,
+    warnings: [...incoming.warnings,
+      `${count} productos del archivo ${incoming.filename}. Se conservan ${kept.length} productos de la otra lista con sus precios y existencias anteriores; confirmar vigencia.`,
+      "La fecha de cada lista se consulta en el detalle de sus productos.",
+    ],
+  };
+}
+
 function review() {
   const r = preview.rows;
   $("#import-summary").textContent =
@@ -511,7 +549,7 @@ function review() {
   $("#review-rows").innerHTML = r
     .map(
       (x, i) =>
-        `<tr>${["code", "description", "brand", "model", "stock", "price", "bulk"].map((k) => `<td><input aria-label="${k} fila ${i + 1}" data-row="${i}" data-field="${k}" ${["stock", "price", "bulk"].includes(k) ? 'type="number" min="0" step="' + (k === "stock" ? "1" : "0.0001") + '"' : 'type="text"'} value="${esc(k === "bulk" ? x.tiers.find((t) => t.rule === "50_pedido")?.price || "" : (x[k] ?? ""))}" ${k === "bulk" && $("#import-provider").value !== PROVIDERS[2].id ? "disabled" : ""}></td>`).join("")}</tr>`,
+        `<tr>${["code", "description", "brand", "model", "stock", "price", "bulk"].map((k) => `<td><input aria-label="${k} fila ${i + 1}" data-row="${i}" data-field="${k}" ${["stock", "price", "bulk"].includes(k) ? 'type="number" min="0" step="' + (k === "stock" ? "1" : "0.0001") + '"' : 'type="text"'} value="${esc(k === "bulk" ? x.tiers.find((t) => t.rule === "50_pedido")?.price || "" : (x[k] ?? ""))}" ${(preview.futuramaImportCount !== undefined && i >= preview.futuramaImportCount) || (k === "bulk" && $("#import-provider").value !== PROVIDERS[2].id) ? "disabled" : ""}></td>`).join("")}</tr>`,
     )
     .join("");
   $("#review-confirm").checked = false;
@@ -757,6 +795,9 @@ function bind() {
       );
       preview.filename = file.name;
       preview.provider = p.id;
+      if (p.kind === "toyo") {
+        preview = prepareFuturamaImport(preview, lists.find(l => l.id === previewExpected));
+      }
       review();
       $("#import-status").textContent =
         "Archivo leído. Revisa la tabla antes de publicar.";
@@ -801,13 +842,22 @@ function bind() {
         if (r.price !== null && r.price <= 0)
           throw Error("Precio inválido: deja vacío si no está indicado.");
       }
-      const cleaned = preview.rows.map((r, i) =>
-        finish({ ...r, id: `${r.code || "ROW"}::${i}` }),
-      );
+      const cleaned = preview.rows.map((r, i) => {
+        const id = `${r.code || "ROW"}::${i}`;
+        if (preview.futuramaImportCount !== undefined && i >= preview.futuramaImportCount)
+          return { ...r, id };
+        const result = finish({ ...r, notes: [...r.notes], id });
+        if (preview.futuramaImportCount !== undefined) {
+          result.sourceFilename = preview.futuramaImportedFilename;
+          result.sourceDate = $("#import-date").value || null;
+          result.sourceDateLabel = result.sourceDate || "Fecha del archivo por confirmar";
+        }
+        return result;
+      });
       const { error } = await db.rpc("publicar_lista_comparador", {
         p_provider: preview.provider,
         p_filename: preview.filename,
-        p_date: $("#import-date").value || null,
+        p_date: preview.futuramaImportCount !== undefined ? null : $("#import-date").value || null,
         p_rows: cleaned,
         p_warnings: preview.warnings,
         p_expected: previewExpected,
