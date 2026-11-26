@@ -496,11 +496,11 @@ function printOrder() {
     `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Pedido de llantas</title><style>body{font:14px system-ui;margin:40px;color:#24312b}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #ddd}h2{margin-top:36px}p{line-height:1.6}small{color:#666}@media print{button{display:none}}</style></head><body><button onclick="window.print()">Imprimir / Guardar PDF</button><h1>Pedido de llantas</h1><p>${esc(date(new Date().toISOString()))}</p>${snapshot()
       .map(
         (g) =>
-          `<h2>${esc(g.provider)}</h2><table><thead><tr><th>Código / descripción</th><th>Piezas</th><th>Precio</th><th>Subtotal</th></tr></thead><tbody>${g.lines.map((x) => `<tr><td>${esc(x.row.code || "Sin código")}<br>${esc(x.row.description)}<br><small>${esc(x.row.filename)} · ${esc(x.row.date || x.row.date_label || "Fecha por confirmar")} · ${esc(stockText(x.row, x.qty))}</small></td><td>${x.qty}</td><td>${money(x.unit)}</td><td>${money(x.total)}</td></tr>`).join("")}</tbody></table><p><strong>Total ${money(g.total)} MXN</strong></p>`,
+          `<h2>${esc(g.provider)}</h2><table><thead><tr><th>Código / descripción</th><th>Piezas</th></tr></thead><tbody>${g.lines.map((x) => `<tr><td>${esc(x.row.code || "Sin código")}<br>${esc(x.row.description)}<br><small>${esc(x.row.filename)} · ${esc(x.row.date || x.row.date_label || "Fecha por confirmar")} · ${esc(stockText(x.row, x.qty))}</small></td><td>${x.qty}</td></tr>`).join("")}</tbody></table>`,
       )
       .join(
         "",
-      )}<p>Precios de las listas, sujetos a confirmación de disponibilidad, IVA y flete. Este documento no envía ni reserva el pedido.</p></body></html>`,
+      )}<p>Disponibilidad por confirmar con el proveedor. Este documento no envía ni reserva el pedido.</p></body></html>`,
   );
   w.document.close();
 }
