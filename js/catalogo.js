@@ -245,8 +245,8 @@ export function parseWorkbook(sheets, kind) {
       );
       x.brand = r[4];
       x.model = r[2];
-      x.price = r[6];
-      x.priceLabel = "Pieza";
+      x.price = r[5];
+      x.priceLabel = "Contenedor";
       x.tax = "Neto según archivo";
       x.warehouses = String(r[11] || "");
       const parts = [
@@ -260,14 +260,14 @@ export function parseWorkbook(sheets, kind) {
         x.notes.push(
           `Odoo reporta ${x.stock}; las cuatro columnas de almacén suman ${total}. Confirmar disponibilidad.`,
         );
-      x.tiers = [{ label: "Contenedor", price: r[5], rule: "confirmar" }];
+      x.tiers = [{ label: "Pieza", price: r[6], rule: "confirmar" }];
       x.notes.push(
-        "Contenedor: condición no especificada; no se aplica automáticamente.",
+        "Se usa el precio de contenedor. Condiciones de compra por confirmar con Reaco.",
       );
       out.push(finish(x));
     });
     warnings.push(
-      "Se usa GENERAL (precio PIEZA y existencias Odoo). Las otras hojas no se suman ni sustituyen esta lista.",
+      "Se usa GENERAL (precio CONTENEDOR y existencias Odoo). Las otras hojas no se suman ni sustituyen esta lista.",
     );
   } else if (kind === "speedmax") {
     const required = [
