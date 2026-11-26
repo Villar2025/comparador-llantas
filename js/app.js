@@ -77,7 +77,22 @@ function setupSelection() {
   const select = document.createElement("select");
   select.id = "query";
   select.setAttribute("aria-labelledby", "selection-label");
-  label.append(kindLabel, kind, selectedLabel, select);
+  const textLabel = document.createElement("span");
+  textLabel.id = "search-text-label";
+  textLabel.textContent = "Escribe para buscar";
+  textLabel.style.display = "block";
+  textLabel.style.marginTop = "16px";
+  const textInput = document.createElement("input");
+  textInput.id = "search-text";
+  textInput.type = "search";
+  textInput.autocomplete = "off";
+  textInput.setAttribute("aria-labelledby", "search-text-label");
+  label.append(kindLabel, kind, textLabel, textInput, selectedLabel, select);
+  textInput.oninput = () => {
+    select.value = "";
+    rebuildSelection();
+    renderSearch();
+  };
   kind.onchange = () => {
     rebuildSelection(false);
     renderSearch();
@@ -86,13 +101,28 @@ function setupSelection() {
   const subtitle = $("#page-compare .page-heading .muted");
   if (subtitle)
     subtitle.textContent =
-      "Elige una medida, modelo o código de las listas de tus proveedores.";
+      "Escribe o elige una medida, modelo o código de las listas de tus proveedores.";
+}
+function matchesTypedSearch(row, kind, text) {
+  const normalize = (value) => {
+    const normalized = norm(value);
+    return kind === "size" ? normalized.replace(/[\s/\-]/g, "") : normalized;
+  };
+  return normalize(row[kind] ?? "").includes(normalize(text));
 }
 function rebuildSelection(preserve = true) {
   const kind = $("#search-kind").value;
   const prior = preserve ? $("#query").value : "";
+  const typed = $("#search-text");
+  if (!preserve) typed.value = "";
+  typed.placeholder = {
+    size: "Ej. 205/55 o 20555",
+    model: "Escribe parte del modelo",
+    code: "Escribe parte del código",
+  }[kind];
+  const matching = rows.filter((r) => matchesTypedSearch(r, kind, typed.value));
   const values = [
-    ...new Set(rows.map((r) => String(r[kind] ?? "").trim()).filter(Boolean)),
+    ...new Set(matching.map((r) => String(r[kind] ?? "").trim()).filter(Boolean)),
   ].sort((a, b) => a.localeCompare(b, "es-MX", { numeric: true }));
   $("#selection-label").textContent = {
     size: "Medida disponible",
@@ -100,7 +130,7 @@ function rebuildSelection(preserve = true) {
     code: "Código disponible",
   }[kind];
   $("#query").innerHTML = options([
-    ["", "Ver todas las opciones"],
+    ["", typed.value.trim() ? "Ver todas las coincidencias" : "Ver todas las opciones"],
     ...values.map((v) => [v, v]),
   ]);
   if (values.includes(prior)) $("#query").value = prior;
@@ -108,9 +138,12 @@ function rebuildSelection(preserve = true) {
 function selectedRows() {
   const value = $("#query").value;
   const kind = $("#search-kind").value;
+  const matching = rows.filter((r) =>
+    matchesTypedSearch(r, kind, $("#search-text").value),
+  );
   return value
-    ? rows.filter((r) => String(r[kind] ?? "").trim() === value)
-    : rows;
+    ? matching.filter((r) => String(r[kind] ?? "").trim() === value)
+    : matching;
 }
 function page(name) {
   for (const n of ["compare", "lists", "cart"])
@@ -278,7 +311,7 @@ function renderChart() {
     data = results.filter((r) => priceFor(r, f.wholesale) > 0).slice(0, 8);
   const max = Math.max(...data.map((r) => priceFor(r, f.wholesale)), 1);
   $("#chart-caption").textContent =
-    $("#query").value.trim() || "Búsqueda actual";
+    $("#query").value.trim() || $("#search-text").value.trim() || "Búsqueda actual";
   $("#chart").innerHTML = data.length
     ? data
         .map(
