@@ -437,7 +437,7 @@ function renderSaved() {
     ? orders
         .map(
           (o) =>
-            `<div class="history-row"><div><strong>Pedido ${esc(o.id.slice(0, 8))}</strong><small>${date(o.created_at)} · ${o.contenido.length} proveedores · ${money(o.contenido.reduce((s, g) => s + g.total, 0))}</small></div><button class="secondary" data-order="${o.id}">Abrir copia</button></div>`,
+            `<div class="history-row"><div><strong style="overflow-wrap:anywhere">${esc(o.nombre || "Pedido " + o.id.slice(0, 8))}</strong><small>${date(o.created_at)} · ${o.contenido.length} proveedores · ${money(o.contenido.reduce((s, g) => s + g.total, 0))}</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="secondary" data-rename-order="${o.id}">Cambiar nombre</button><button class="secondary" data-order="${o.id}">Abrir copia</button></div></div>`,
         )
         .join("")
     : '<p class="muted">Todavía no has guardado pedidos.</p>';
@@ -647,7 +647,44 @@ function bind() {
       $("#save-order").disabled = false;
     }
   };
-  $("#saved-orders").onclick = (e) => {
+  $("#saved-orders").onclick = async (e) => {
+    const renameButton = e.target.closest("[data-rename-order]");
+    if (renameButton) {
+      if (renameButton.disabled) return;
+      const order = orders.find((o) => o.id === renameButton.dataset.renameOrder);
+      if (!order) return;
+      const entered = window.prompt(
+        "Nombre del pedido (máximo 120 caracteres). Deja vacío para usar el nombre automático.",
+        order.nombre || "",
+      );
+      if (entered === null) return;
+      const nombre = entered.trim() || null;
+      if (nombre && Array.from(nombre).length > 120) {
+        $("#cart-status").textContent = "El nombre debe tener como máximo 120 caracteres.";
+        return;
+      }
+      if (nombre === (order.nombre || null)) return;
+      renameButton.disabled = true;
+      $("#cart-status").textContent = "Guardando nombre…";
+      try {
+        const { data, error } = await db
+          .from("ordenes_comparador")
+          .update({ nombre })
+          .eq("id", order.id)
+          .select("id,nombre")
+          .single();
+        if (error) throw error;
+        const current = orders.find((o) => o.id === data.id);
+        if (current) current.nombre = data.nombre;
+        renderSaved();
+        $("#cart-status").textContent = "Nombre del pedido actualizado.";
+      } catch (error) {
+        $("#cart-status").textContent = "No se cambió el nombre: " + error.message;
+      } finally {
+        renameButton.disabled = false;
+      }
+      return;
+    }
     const id = e.target.closest("[data-order]")?.dataset.order;
     if (!id) return;
     if (
