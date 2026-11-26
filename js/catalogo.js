@@ -73,7 +73,9 @@ export function sizeOf(text) {
     : { size: "POR REVISAR", raw: "" };
 }
 export function finish(row) {
-  const parsed = sizeOf(row.description);
+  const parsed = sizeOf(row.sourceFormat === "futurama-inventario"
+    ? row.description.replace(/(\d)\s*\/\s*(ZR|R)\s*(\d)/gi, "$1$2$3")
+    : row.description);
   row.size = parsed.size;
   row.brand = norm(row.brand).replace(/^SUMAXX TIRE$/, "SUMAXX");
   row.model = norm(row.model || "");
@@ -101,7 +103,7 @@ export function finish(row) {
     .filter(Boolean)
     .join(" ");
   row.exact =
-    row.spec && row.model && row.size !== "POR REVISAR"
+    row.sourceFormat !== "futurama-inventario" && row.spec && row.model && row.size !== "POR REVISAR"
       ? [row.size, row.brand, row.model, row.spec, row.variant].join("|")
       : "";
   if (row.size === "POR REVISAR")
@@ -134,7 +136,66 @@ function modelAfter(description, brand) {
     .replace(/\s+/g, " ")
     .trim();
 }
+function parseFuturamaInventory(sheets) {
+  const rows = [];
+  let cameras = 0;
+  const warehouses = ['MAT','VGR','VAL','PON','IXT','QRO','GDL','OBR','MAY OBR','JOJ','PLA','JOR','MIS','CHA','AHU','VIN','BDC'];
+  for (const [sheet, data] of Object.entries(sheets)) {
+    const hi = data.findIndex(r => r.some(v => norm(v) === 'ARTICULO') && r.some(v => norm(v).replace(/\s/g, '') === 'SEMI-MAYOREO'));
+    if (hi < 0) continue;
+    const h = data[hi].map(v => norm(v).replace(/\s*-\s*/g, '-'));
+    const ix = name => h.indexOf(name);
+    for (const required of ['ARTICULO','DESCRIPCION','MARCA','SEMI-MAYOREO']) {
+      if (ix(required) < 0) throw Error(`Falta ${required} en ${sheet}.`);
+    }
+    const columns = warehouses.filter(k => ix(k) >= 0);
+    if (!columns.length) throw Error(`No se reconocen las sucursales de ${sheet}.`);
+    data.slice(hi + 1).forEach((r, i) => {
+      if (!r[ix('ARTICULO')] || !r[ix('DESCRIPCION')]) return;
+      const x = base(r[ix('ARTICULO')], r[ix('DESCRIPCION')], `${sheet} · fila ${hi + i + 2}`);
+      if (/^CAMARA\b/.test(norm(x.description))) { cameras++; return; }
+      x.brand = r[ix('MARCA')];
+      if (!norm(x.brand)) throw Error(`Falta marca en ${x.code}.`);
+      const stocks = columns.map(k => {
+        const n = number(r[ix(k)]);
+        if (n === null || !Number.isInteger(n) || n < 0) throw Error(`Existencia inválida en ${x.code}, sucursal ${k}.`);
+        return [k, n];
+      });
+      x.stock = stocks.reduce((sum, [, n]) => sum + n, 0);
+      x.warehouses = stocks.map(([k,n]) => `${k}: ${n}`).join('; ');
+      x.price = number(r[ix('SEMI-MAYOREO')]);
+      x.priceLabel = 'Semi-mayoreo (IVA incluido)';
+      x.tax = 'IVA incluido según archivo';
+      const parsing = x.description.replace(/(\d)\s*\/\s*(ZR|R)\s*(\d)/gi, '$1$2$3');
+      x.model = modelAfter(parsing, x.brand);
+      x.sourceFormat = 'futurama-inventario';
+      x.notes = [
+        `Aplicación: ${r[ix('APLICACION')] || 'Por confirmar'}.`,
+        'Existencia total de sucursales; confirmar ubicación y traslado.',
+        'Precios sujetos a cambios sin previo aviso.',
+        'Modelo extraído de la descripción; confirmar especificaciones.'
+      ];
+      x.tiers = ['MAYOREO','PROM. DEL MES','NK','PROM. PRONTO PAGO']
+        .filter(k => ix(k) >= 0 && number(r[ix(k)]) > 0)
+        .map(k => ({label:k, price:number(r[ix(k)]), rule:'confirmar'}));
+      rows.push(finish(x));
+    });
+  }
+  if (!rows.length) throw Error('No se encontraron llantas en el inventario de Futurama.');
+  const seen = new Set();
+  rows.forEach((r, i) => {
+    if (seen.has(r.code)) throw Error(`Código repetido en el inventario: ${r.code}. Revisa el archivo.`);
+    seen.add(r.code);
+    r.id = `${r.code}::${i}`;
+  });
+  return {rows, warnings: [
+    'Semi-mayoreo con IVA incluido. Existencia sumada de sucursales; confirmar traslado.',
+    `Se excluyeron ${cameras} cámaras.`
+  ]};
+}
+
 export function parseWorkbook(sheets, kind) {
+  if (kind === "toyo" && Object.values(sheets).some(rs => rs.some(r => r.some(v => norm(v) === "ARTICULO") && r.some(v => norm(v).replace(/\s/g, "") === "SEMI-MAYOREO")))) return parseFuturamaInventory(sheets);
   let out = [];
   const warnings = [];
   let skipped = 0;
